@@ -1,22 +1,32 @@
 import { User } from "../models/user.model";
-import { Request , Response , NextFunction } from "express";
+import { Request , Response , NextFunction, RequestHandler } from "express";
+import { loginSchema, registerSchema } from "../schemas/auth.schema";
 import jwt from "jsonwebtoken" ;
 import bcrypt from "bcrypt"
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 if(!JWT_SECRET) throw new Error("jwt secret not defined") ;
 
-export const registerUser  = async (req : Request , res : Response , next : NextFunction) => {
+export const registerUser   = async (req : Request , res : Response , next : NextFunction) => {
+	
 	try {
-		const {username , password} = req.body ;
+		const parsed = registerSchema.safeParse(req.body) ;
+		if(!parsed.success){
+			res.status(400).json({
+				error : parsed.error.format() 
+			}) 
+			return ;
+		}
+		const {username , password} = parsed.data ;
 
 		const existingUser = await User.findOne({
 			username : username 
 		})
 		if(existingUser){
-			return res.status(400).json({
+			res.status(400).json({
 				message : "username already taken"
-			})
+			}) ;
+			return ;
 		}
 
 		const hashedPass = await bcrypt.hash(password,10) ;
@@ -48,15 +58,24 @@ export const registerUser  = async (req : Request , res : Response , next : Next
 
 export const loginUser = async (req : Request , res : Response , next : NextFunction) => {
 	try {
-		const {username , password} = req.body ;
+		const parsed = loginSchema.safeParse(req.body) ;
+		if(!parsed.success){
+			res.status(400).json({
+				error : parsed.error.format()
+			}) ;
+			return ;
+		}
+
+		const {username , password} = parsed.data ;
 
 		const existingUser = await User.findOne({
 			username : username 
 		})
 		if(!existingUser){
-			return res.status(401).json({
+			res.status(401).json({
 				message : "invalid username" 
-			})
+			}) ;
+			return ;
 		}
 
 		const match = await bcrypt.compare(password,existingUser.password) ;
@@ -70,7 +89,7 @@ export const loginUser = async (req : Request , res : Response , next : NextFunc
 			id : existingUser._id 
 		} , JWT_SECRET , { expiresIn : "7d" }) ;
 
-		res.status(201).json({
+		res.status(200).json({
 			user : {
 				id : existingUser._id ,
 				username : existingUser.username
