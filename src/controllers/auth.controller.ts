@@ -1,12 +1,12 @@
 import { User } from "../models/user.model";
-import { Request , Response } from "express";
+import { Request , Response , NextFunction } from "express";
 import jwt from "jsonwebtoken" ;
 import bcrypt from "bcrypt"
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 if(!JWT_SECRET) throw new Error("jwt secret not defined") ;
 
-export const register = async (req : Request , res : Response) => {
+export const registerUser  = async (req : Request , res : Response , next : NextFunction) => {
 	try {
 		const {username , password} = req.body ;
 
@@ -46,7 +46,7 @@ export const register = async (req : Request , res : Response) => {
 	}
 }
 
-export const login = async (req : Request , res : Response) => {
+export const loginUser = async (req : Request , res : Response , next : NextFunction) => {
 	try {
 		const {username , password} = req.body ;
 
