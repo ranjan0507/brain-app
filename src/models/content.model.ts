@@ -7,6 +7,7 @@ export interface IContent extends Document {
 	type : 'tweet' | 'youtube' | 'link' | 'image' | 'note' ;
 	tags : mongoose.Types.ObjectId[] ;
 	userId : mongoose.Types.ObjectId ;
+	categoryId : mongoose.Types.ObjectId ;
 }
 
 const contentSchema = new Schema<IContent>({
@@ -29,6 +30,11 @@ const contentSchema = new Schema<IContent>({
 	userId : {
 		type : Schema.Types.ObjectId ,
 		ref : 'users' ,
+		required : true 
+	} ,
+	categoryId : {
+		type : Schema.Types.ObjectId ,
+		ref : "categories" ,
 		required : true 
 	}
 })
