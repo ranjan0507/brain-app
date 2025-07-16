@@ -1,215 +1,225 @@
-import { AuthenticatedRequest } from "../middlewares/auth.middleware";
-import { Response , NextFunction } from "express";
-import { Content } from "../models/content.model";
-import { Category } from "../models/category.model";
-import { Tag } from "../models/tags.model";
-import { createContentSchema, updateContentSchema } from "../schemas/content.schemas";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
+import { Response, NextFunction } from "express";
+import { Content } from "../models/content.model.js";
+import { Category } from "../models/category.model.js";
+import { Tag } from "../models/tags.model.js";
+import { createContentSchema, updateContentSchema } from "../schemas/content.schemas.js";
 import mongoose from "mongoose";
 
-export const createContent = async (req : AuthenticatedRequest , res : Response , next : NextFunction) => {
+export const createContent = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
-		const parsed = createContentSchema.safeParse(req.body) ;
-		if(!parsed.success){
+		const parsed = createContentSchema.safeParse(req.body);
+		if (!parsed.success) {
 			res.status(400).json({
-				error : parsed.error.format()
-			}) ;
-			return ;
+				error: parsed.error.format()
+			});
+			return;
 		}
-		const {title , link , type , tags = [] ,categoryId , categoryName} = parsed.data ;
-		const user = req.user ;
-		if(!user){
+		const { title, link, type, tags = [], categoryId, categoryName } = parsed.data;
+		const user = req.user;
+		if (!user) {
 			res.status(401).json({
-				message : "unauthorized"
-			}) ;
-			return ;
+				message: "unauthorized"
+			});
+			return;
 		}
 
-		let finalCategoryId : mongoose.Types.ObjectId ;
-		if(categoryId){
+		let finalCategoryId: mongoose.Types.ObjectId;
+		if (categoryId) {
 			if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-    			res.status(400).json({ message: "Invalid categoryId format" });
-				return ;
- 			}
+				res.status(400).json({ message: "Invalid categoryId format" });
+				return;
+			}
 			const cat = await Category.findOne({
-				_id : categoryId ,
-				userId : user._id 
-			}) ;
-			if(!cat){
+				_id: categoryId,
+				userId: user._id
+			});
+			if (!cat) {
 				res.status(400).json({
-					message : "Invalid category"
-				}) ;
-				return ;
+					message: "Invalid category"
+				});
+				return;
 			}
 			finalCategoryId = cat._id as mongoose.Types.ObjectId;
 		}
-		else if (categoryName){
+		else if (categoryName) {
 			let cat = await Content.findOne({
-				name : categoryName ,
-				userId : user._id
-			}) ;
-			if(!cat){
+				name: categoryName,
+				userId: user._id
+			});
+			if (!cat) {
 				cat = await Content.create({
-					name : categoryName ,
-					userId : user._id 
-				}) ;
+					name: categoryName,
+					userId: user._id
+				});
 			}
-			finalCategoryId = cat._id as mongoose.Types.ObjectId ;
+			finalCategoryId = cat._id as mongoose.Types.ObjectId;
 		}
-		else{
+		else {
 			res.status(400).json({
-				message : "Category ID or name is required"
-			}) ;
-			return ;
+				message: "Category ID or name is required"
+			});
+
+ 			return;
 		}
 
-		const tagIds : mongoose.Types.ObjectId[] = [] ;
-		for (const t of tags){
-			if(mongoose.Types.ObjectId.isValid(t)){
-				const found = await Tag.findById(t) ;
-				if(found) tagIds.push(found._id as mongoose.Types.ObjectId) ;
+		const tagIds: mongoose.Types.ObjectId[] = [];
+
+		for (const raw of tags) {
+			const candidate = raw.trim().toLowerCase();
+			let tagDoc;
+			if (mongoose.Types.ObjectId.isValid(candidate)) {
+				tagDoc = await Tag.findById(candidate);
 			}
+			if (!tagDoc) {
+				tagDoc = await Tag.findOne({ title: candidate, userId: user._id });
+				if (!tagDoc) {
+					tagDoc = await Tag.create({ title: candidate, userId: user._id });
+				}
+			}
+			tagIds.push(tagDoc._id as mongoose.Types.ObjectId);
 		}
 
 		const content = await Content.create({
-			title : title ,
-			link : link ,
-			type : type ,
-			tags : tagIds ,
-			userId : user._id ,
-			categoryId : finalCategoryId
-		}) ;
+			title: title,
+			link: link,
+			type: type,
+			tags: tagIds,
+			userId: user._id,
+			categoryId: finalCategoryId
+		});
 
 		res.status(201).json({
-			content : content
+			content: content
 		})
 
 	} catch (error) {
 		res.status(500).json({
-			message : "Failed to create content" ,
-			error : error
+			message: "Failed to create content",
+			error: error
 		})
 	}
 }
 
-export const getUserContent = async (req : AuthenticatedRequest , res : Response , next : NextFunction) => {
+export const getUserContent = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
-		const user = req.user ;
-		if(!user){
+		const user = req.user;
+		if (!user) {
 			res.status(401).json({
-				message : "Unauthorized"
+				message: "Unauthorized"
 			});
-			return ;
+			return;
 		}
 
-		const {categoryId , tagId , type} = req.query ;
-		const filter : any = {userId : user._id} ;
-		if(typeof categoryId === "string" && mongoose.Types.ObjectId.isValid(categoryId)){
-			filter.categoryId = categoryId ;
+		const { categoryId, tagId, type } = req.query;
+		const filter: any = { userId: user._id };
+		if (typeof categoryId === "string" && mongoose.Types.ObjectId.isValid(categoryId)) {
+			filter.categoryId = categoryId;
 		}
-		if(typeof tagId === "string" && mongoose.Types.ObjectId.isValid(tagId)){
-			filter.tags = tagId ;
+		if (typeof tagId === "string" && mongoose.Types.ObjectId.isValid(tagId)) {
+			filter.tags = tagId;
 		}
-		if(typeof type === "string"){
-			filter.type = type ;
+		if (typeof type === "string") {
+			filter.type = type;
 		}
 
 		const contents = await Content.find(filter)
-			.populate("categoryId","name")
-			.populate("tags","title")
-			.sort({createdAt : -1}) ;
+			.populate("categoryId", "name")
+			.populate("tags", "title")
+			.sort({ createdAt: -1 });
 		res.status(200).json({
-			contents : contents
+			contents: contents
 		})
 	} catch (error) {
 		res.status(500).json({
-			message : "Error fetching content" ,
-			error : error
+			message: "Error fetching content",
+			error: error
 		})
 	}
 }
 
-export const updateContent = async (req : AuthenticatedRequest , res : Response , next : NextFunction) => {
+export const updateContent = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
-		const user = req.user ;
-		if(!user){
+		const user = req.user;
+		if (!user) {
 			res.status(401).json({
-				message : "unauthorized"
-			}) ;
-			return ;
+				message: "unauthorized"
+			});
+			return;
 		}
-		const {contentId} = req.params ;
-		const parsed = updateContentSchema.safeParse(req.body) ;
-		if(!parsed.success){
+		const { contentId } = req.params;
+		const parsed = updateContentSchema.safeParse(req.body);
+		if (!parsed.success) {
 			res.status(400).json({
-				error : parsed.error.format() 
+				error: parsed.error.format()
 			})
-			return ;
+			return;
 		}
-		const {title,link,type,tags,categoryId} = parsed.data ;
+		const { title, link, type, tags, categoryId } = parsed.data;
 
 		const content = await Content.findOne({
-			userId : user._id ,
-			_id : contentId
+			userId: user._id,
+			_id: contentId
 		})
-		if(!content){
+		if (!content) {
 			res.status(404).json({
-				message : "content not found"
-			}) ;
-			return ;
+				message: "content not found"
+			});
+			return;
 		}
-		if(title) content.title = title ;
-		if(link) content.link = link ;
-		if(type) content.type = type ;
-		if(Array.isArray(tags)){
-			const tagIds : mongoose.Types.ObjectId[] = tags
+		if (title) content.title = title;
+		if (link) content.link = link;
+		if (type) content.type = type;
+		if (Array.isArray(tags)) {
+			const tagIds: mongoose.Types.ObjectId[] = tags
 				.filter(t => mongoose.Types.ObjectId.isValid(t))
-				.map(t => new mongoose.Types.ObjectId(t)) ;
-			content.tags = tagIds ;
+				.map(t => new mongoose.Types.ObjectId(t));
+			content.tags = tagIds;
 		}
-		if(categoryId && mongoose.Types.ObjectId.isValid(categoryId)){
-			content.categoryId = new mongoose.Types.ObjectId(categoryId) ;
+		if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+			content.categoryId = new mongoose.Types.ObjectId(categoryId);
 		}
-		await content.save() ;
+		await content.save();
 		res.status(200).json({
-			content : content
+			content: content
 		})
-		return ;
+		return;
 	} catch (error) {
 		res.status(500).json({
-			message : "Failed to update content" ,
-			error : error
+			message: "Failed to update content",
+			error: error
 		})
 	}
 }
 
-export const deleteContent = async (req : AuthenticatedRequest , res : Response , next : NextFunction) => {
+export const deleteContent = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
-		const {contentId} = req.params ;
-		const user = req.user ;
-		if(!user){
+		const { contentId } = req.params;
+		const user = req.user;
+		if (!user) {
 			res.status(401).json({
-				message : "Unauthorized"
-			}) ;
-			return ;
+				message: "Unauthorized"
+			});
+			return;
 		}
 
 		const deleted = await Content.findOneAndDelete({
-			_id : contentId ,
-			userId : user._id
-		}) ;
-		if(!deleted){
+			_id: contentId,
+			userId: user._id
+		});
+		if (!deleted) {
 			res.status(404).json({
-				message : "Content not found"
-			}) ;
-			return ;
+				message: "Content not found"
+			});
+			return;
 		}
 		res.status(200).json({
-			message : "Content deleted"
+			message: "Content deleted"
 		})
 	} catch (error) {
 		res.status(500).json({
-			message : "Failed to update content" ,
-			error : error
+			message: "Failed to update content",
+			error: error
 		})
 	}
 }

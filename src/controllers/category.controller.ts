@@ -1,7 +1,7 @@
-import { Category } from "../models/category.model";
+import { Category } from "../models/category.model.js";
 import { Request , Response , NextFunction } from "express";
-import { createCategorySchema , updateCategorySchema } from "../schemas/category.schema";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware";
+import { createCategorySchema , updateCategorySchema } from "../schemas/category.schema.js";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 
 export const createCategory = async (req : AuthenticatedRequest , res : Response , next : NextFunction) => {
 	try {

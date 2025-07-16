@@ -1,6 +1,6 @@
-import { User } from "../models/user.model";
-import { Request , Response , NextFunction, RequestHandler } from "express";
-import { loginSchema, registerSchema } from "../schemas/auth.schema";
+import { User } from "../models/user.model.js";
+import { Request , Response , NextFunction } from "express";
+import { loginSchema, registerSchema } from "../schemas/auth.schema.js";
 import jwt from "jsonwebtoken" ;
 import bcrypt from "bcrypt"
 

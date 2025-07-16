@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import crypto from "crypto" ;
-import { Link } from "../models/link.model";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware";
+import { Link } from "../models/link.model.js";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 import { Response , NextFunction } from "express";
-import { createLinkSchema } from "../schemas/link.schema";
-import { Content } from "../models/content.model";
+import { createLinkSchema } from "../schemas/link.schema.js";
+import { Content } from "../models/content.model.js";
 
 const generateHash = () : string => crypto.randomBytes(4).toString("hex") ;
 

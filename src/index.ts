@@ -1,13 +1,13 @@
+import './utils/config.js'
 import express from "express";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
-import authRoutes from "./routes/auth.route";
-import categoryRoutes from './routes/category.route'
-import contentRoutes from "./routes/content.route"
-import linkRoutes from "./routes/link.route"
-import { redirectByHash } from "./controllers/link.controller";
+import authRoutes from "./routes/auth.route.js";
+import categoryRoutes from './routes/category.route.js'
+import contentRoutes from "./routes/content.route.js"
+import linkRoutes from "./routes/link.route.js"
+import { connectDB } from './config/db.js';
+import { redirectByHash } from "./controllers/link.controller.js";
 
-dotenv.config();
 const app = express();
 app.use(express.json());
 
@@ -23,8 +23,7 @@ app.get("/link/:hash",redirectByHash) ;
 
 const PORT = process.env.PORT || 8000;
 
-mongoose.connect(process.env.MONGO_URI!).then(() => {
-  console.log("MongoDB connected");
+connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response} from "express";
 import jwt from "jsonwebtoken" ;
-import { User } from "../models/user.model";
+import { User } from "../models/user.model.js";
 
 export interface AuthenticatedRequest extends Request {
 	user? : any
@@ -25,6 +25,7 @@ export const authenticate = async (req : AuthenticatedRequest , res : Response ,
 			return ;
 		}
 		req.user = user ;
+		next() ;
 	} catch (error) {
 		res.status(401).json({ error: "Invalid token" });
 		return ;
