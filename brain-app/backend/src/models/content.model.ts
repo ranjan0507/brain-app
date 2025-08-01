@@ -34,8 +34,7 @@ const contentSchema = new Schema<IContent>({
 	} ,
 	categoryId : {
 		type : Schema.Types.ObjectId ,
-		ref : "categories" ,
-		required : true 
+		ref : "categories" 
 	}
 })
 

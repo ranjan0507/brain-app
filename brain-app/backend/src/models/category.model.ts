@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 import { Document , Schema } from "mongoose";
 
 export interface ICategory extends Document{
-	title : string ;
+	name : string ;
 	userId : mongoose.Types.ObjectId ;
 }
 
 const categorySchema = new Schema<ICategory>({
-	title : {
+	name : {
 		type : String ,
 		required : true 
 	} , 

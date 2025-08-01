@@ -43,12 +43,12 @@ export const createContent = async (req: AuthenticatedRequest, res: Response, ne
 			finalCategoryId = cat._id as mongoose.Types.ObjectId;
 		}
 		else if (categoryName) {
-			let cat = await Content.findOne({
+			let cat = await Category.findOne({
 				name: categoryName,
 				userId: user._id
 			});
 			if (!cat) {
-				cat = await Content.create({
+				cat = await Category.create({
 					name: categoryName,
 					userId: user._id
 				});
