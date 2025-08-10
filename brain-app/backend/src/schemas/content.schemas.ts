@@ -6,6 +6,7 @@ export const createContentSchema = z.object({
 	type : z.enum(['tweet','youtube','link','image','note']) ,
 	tags : z.array(z.string()).optional() ,
 	categoryId : z.string().optional() ,
+	description: z.string().optional(),
 	categoryName : z.string().optional()
 })
 
@@ -14,6 +15,7 @@ export const updateContentSchema = z.object({
   	link: z.string().url().optional(),
   	type: z.enum(['tweet','youtube','link','image','note']).optional(),
   	tags: z.array(z.string()).optional(),
+	description: z.string().optional(),
   	categoryId: z.string().optional(),
 })
 

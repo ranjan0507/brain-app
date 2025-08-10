@@ -8,6 +8,7 @@ export interface IContent extends Document {
 	tags : mongoose.Types.ObjectId[] ;
 	userId : mongoose.Types.ObjectId ;
 	categoryId : mongoose.Types.ObjectId ;
+	description? : string
 }
 
 const contentSchema = new Schema<IContent>({
@@ -35,7 +36,11 @@ const contentSchema = new Schema<IContent>({
 	categoryId : {
 		type : Schema.Types.ObjectId ,
 		ref : "categories" 
-	}
+	} ,
+	description: {
+    	type: String,
+    	default: ''
+  	}
 })
 
 export const Content = mongoose.model<IContent>('contents',contentSchema) ;
