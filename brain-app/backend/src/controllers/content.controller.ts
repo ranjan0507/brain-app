@@ -15,7 +15,7 @@ export const createContent = async (req: AuthenticatedRequest, res: Response, ne
 			});
 			return;
 		}
-		const { title, link, type, tags = [], categoryId, categoryName } = parsed.data;
+		const { title, url, type, tags = [], categoryId, categoryName } = parsed.data;
 		const user = req.user;
 		if (!user) {
 			res.status(401).json({
@@ -59,12 +59,10 @@ export const createContent = async (req: AuthenticatedRequest, res: Response, ne
 			res.status(400).json({
 				message: "Category ID or name is required"
 			});
-
  			return;
 		}
 
 		const tagIds: mongoose.Types.ObjectId[] = [];
-
 		for (const raw of tags) {
 			const candidate = raw.trim().toLowerCase();
 			let tagDoc;
@@ -82,7 +80,7 @@ export const createContent = async (req: AuthenticatedRequest, res: Response, ne
 
 		const content = await Content.create({
 			title: title,
-			link: link,
+			url: url,                 // ✅ fixed here
 			type: type,
 			tags: tagIds,
 			userId: user._id,
@@ -155,7 +153,7 @@ export const updateContent = async (req: AuthenticatedRequest, res: Response, ne
 			})
 			return;
 		}
-		const { title, link, type, tags, categoryId } = parsed.data;
+		const { title, url, type, tags, categoryId } = parsed.data;
 
 		const content = await Content.findOne({
 			userId: user._id,
@@ -168,7 +166,7 @@ export const updateContent = async (req: AuthenticatedRequest, res: Response, ne
 			return;
 		}
 		if (title) content.title = title;
-		if (link) content.link = link;
+		if (url) content.url = url;   // ✅ fixed here
 		if (type) content.type = type;
 		if (Array.isArray(tags)) {
 			const tagIds: mongoose.Types.ObjectId[] = tags

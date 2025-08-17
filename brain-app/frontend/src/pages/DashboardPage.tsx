@@ -1,5 +1,6 @@
 // src/pages/DashboardPage.tsx
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import CategoryList from "../components/CategoryList";
 import ContentList from "../components/ContentList";
@@ -11,11 +12,15 @@ export default function DashboardPage() {
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const navigate = useNavigate();
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [cRes, contRes] = await Promise.all([api.get("/api/category"), api.get("/api/content")]);
+      const [cRes, contRes] = await Promise.all([
+        api.get("/api/category"),
+        api.get("/api/content"),
+      ]);
       setCategories(Array.isArray(cRes.data) ? cRes.data : cRes.data?.categories ?? []);
       setContents(Array.isArray(contRes.data) ? contRes.data : contRes.data?.contents ?? []);
     } catch (err) {
@@ -27,7 +32,33 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // load twitter + instagram embed scripts so the dashboard embeds render
+  useEffect(() => {
+    // Twitter
+    if (!(window as any).twttr) {
+      const s = document.createElement("script");
+      s.src = "https://platform.twitter.com/widgets.js";
+      s.async = true;
+      s.onload = () => (window as any).twttr?.widgets?.load();
+      document.body.appendChild(s);
+    } else {
+      (window as any).twttr?.widgets?.load();
+    }
+
+    // Instagram
+    if (!(window as any).instgrm) {
+      const s2 = document.createElement("script");
+      s2.src = "https://www.instagram.com/embed.js";
+      s2.async = true;
+      s2.onload = () => (window as any).instgrm?.Embeds?.process();
+      document.body.appendChild(s2);
+    } else {
+      (window as any).instgrm?.Embeds?.process();
+    }
+  }, [contents]);
 
   const stats = useMemo(() => {
     return contents.reduce<Record<string, number>>((acc, item) => {
@@ -38,7 +69,9 @@ export default function DashboardPage() {
   }, [contents]);
 
   const recent = useMemo(() => {
-    return [...contents].sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()).slice(0, 6);
+    return [...contents]
+      .sort((a, b) => new Date((b.createdAt as string) ?? 0).getTime() - new Date((a.createdAt as string) ?? 0).getTime())
+      .slice(0, 6);
   }, [contents]);
 
   const onCreated = (created: ContentItem) => {
@@ -46,51 +79,213 @@ export default function DashboardPage() {
     setCreateOpen(false);
   };
 
+  // helper to get category name from content item
+  const getCategoryName = (item: ContentItem) => {
+    const cid = (item as any).categoryId ?? item.categoryId ?? null;
+    if (!cid) return null;
+    if (typeof cid === "object") return (cid as any).name ?? null;
+    const found = categories.find((c) => String(c._id) === String(cid));
+    return found?.name ?? null;
+  };
+
+  // embed helper (same behaviours as ContentList)
+  const renderEmbed = (item: ContentItem) => {
+    const url = (item as any).link ?? (item as any).url ?? "";
+    const type = (item.type ?? "link").toLowerCase();
+    const title = item.title ?? "";
+
+    // NOTE: for note we render description
+    if (type === "note") {
+      if (!item.description) return <p className="text-gray-400 italic">No description</p>;
+      return <div className="bg-[#0b0b0b] p-3 rounded whitespace-pre-wrap text-sm text-gray-200">{item.description}</div>;
+    }
+
+    if (!url) return null;
+
+    if (type === "youtube") {
+      const videoId = url.includes("v=") ? url.split("v=")[1]?.split("&")[0] : url.split("/").pop();
+      if (!videoId) return <a href={url} target="_blank" rel="noreferrer" className="text-purple-300 underline">{url}</a>;
+      return (
+        <div className="relative pb-[56.25%] h-0 overflow-hidden rounded">
+          <iframe
+            className="absolute top-0 left-0 w-full h-full rounded"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title={title || "YouTube video"}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            frameBorder={0}
+          />
+        </div>
+      );
+    }
+
+    if (type === "tweet") {
+      return (
+        <blockquote className="twitter-tweet">
+          <a href={url}></a>
+        </blockquote>
+      );
+    }
+
+    if (type === "spotify") {
+      const match = url.match(/spotify\.com\/(track|album|playlist|artist)\/([a-zA-Z0-9]+)/);
+      if (!match) return <a href={url} target="_blank" rel="noreferrer" className="text-purple-300 underline">{url}</a>;
+      const [, contentType, contentId] = match;
+      return (
+        <iframe
+          src={`https://open.spotify.com/embed/${contentType}/${contentId}`}
+          width="100%"
+          height="152"
+          frameBorder="0"
+          allow="encrypted-media"
+          className="rounded"
+        />
+      );
+    }
+
+    if (type === "instagram") {
+      return (
+        <blockquote className="instagram-media" data-instgrm-permalink={url} data-instgrm-version="14" style={{ width: "100%" }}>
+          <a href={url}></a>
+        </blockquote>
+      );
+    }
+
+    if (type === "image") {
+      return <img src={url} alt={title || "image"} className="w-full rounded object-cover max-h-56" />;
+    }
+
+    // fallback
+    return <a href={url} target="_blank" rel="noreferrer" className="text-purple-300 underline break-all">{url}</a>;
+  };
+
   if (loading) return <div className="text-white">Loading...</div>;
 
   return (
-    <div>
-      <header className="mb-6 flex items-center justify-between">
+    <div className="space-y-8">
+      {/* header */}
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-purple-400">Dashboard</h1>
-        <button onClick={() => setCreateOpen(true)} className="bg-purple-500 hover:bg-purple-600 px-3 py-1 rounded text-white">Add Content</button>
-      </header>
-
-      <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Stats</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {Object.keys(stats).length === 0 ? <div className="text-gray-400">No items yet</div> : Object.entries(stats).map(([k, v]) => (
-            <div key={k} className="bg-[#0f0f0f] p-4 rounded border border-neutral-800">
-              <div className="text-sm text-gray-400 capitalize">{k}</div>
-              <div className="text-2xl font-bold">{v}</div>
-            </div>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg shadow"
+          >
+            + Add Content
+          </button>
         </div>
-      </section>
+      </div>
 
-      <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Recently Added</h2>
-        <div className="space-y-2">
-          {recent.length === 0 ? <div className="text-gray-400">No recent content</div> : recent.map(item => (
-            <div key={item._id} className="bg-[#0f0f0f] p-3 rounded border border-neutral-800 flex justify-between">
-              <div>
-                <div className="font-medium">{item.title}</div>
-                <div className="text-xs text-gray-400">{item.type ?? "other"} • {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"}</div>
+      {/* stats */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">Stats</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          {Object.keys(stats).length === 0 ? (
+            <div className="col-span-full text-center py-6 bg-[#0b0b0b] rounded-lg border border-neutral-800 text-gray-400">
+              No items yet. Add some content to see stats.
+            </div>
+          ) : (
+            Object.entries(stats).map(([type, count]) => (
+              <div
+                key={type}
+                role="button"
+                onClick={() => navigate(`/my?type=${encodeURIComponent(type)}`)}
+                className="cursor-pointer bg-gradient-to-br from-neutral-900/40 to-neutral-800/20 border border-neutral-800 rounded-xl p-4 hover:shadow-lg hover:scale-[1.02] transition"
+              >
+                <div className="text-sm text-gray-400 capitalize">{type}</div>
+                <div className="text-2xl font-bold text-purple-300">{count}</div>
+                <div className="mt-2 text-xs text-gray-500">Click to view</div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Categories</h2>
-          <CategoryList categories={categories} />
-        </div>
+      {/* recent */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">Recently added</h2>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-3">All Content</h2>
-          <ContentList contents={contents} categories={categories} />
-        </div>
+        {recent.length === 0 ? (
+          <div className="text-center py-6 bg-[#0b0b0b] rounded-lg border border-neutral-800 text-gray-400">
+            No recent content — add your first item.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recent.map((item) => {
+              const catName = getCategoryName(item);
+              return (
+                <article
+                  key={item._id}
+                  onClick={() => navigate(`/my?type=${encodeURIComponent(item.type ?? "")}&highlight=${encodeURIComponent(item._id)}`)}
+                  role="button"
+                  className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl overflow-hidden hover:bg-[#121212] transition"
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{item.title || (item as any).link || "Untitled"}</h3>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {item.type ?? "other"} • {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"}
+                        </div>
+                        {catName && <div className="text-xs text-gray-400 mt-2">Category: {catName}</div>}
+                        {Array.isArray(item.tags) && item.tags.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {item.tags.map((t: any, i: number) => (
+                              <span key={i} className="text-xs bg-neutral-800 px-2 py-1 rounded text-gray-300">
+                                {typeof t === "string" ? t : t?.title ?? ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* embed preview */}
+                    <div className="mt-4">
+                      {renderEmbed(item)}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* categories */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">Categories</h2>
+
+        {categories.length === 0 ? (
+          <div className="text-center py-6 bg-[#0b0b0b] rounded-lg border border-neutral-800 text-gray-400">
+            No categories yet. Create one to organize your items.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {categories.map((cat) => {
+              const count = contents.filter((c) => {
+                const cid = (c as any).categoryId ?? c.categoryId ?? null;
+                const idStr = typeof cid === "object" ? (cid as any)._id ?? (cid as any).id ?? "" : String(cid ?? "");
+                return String(idStr) === String(cat._id);
+              }).length;
+
+              return (
+                <div
+                  key={cat._id}
+                  onClick={() => navigate(`/categories/${cat._id}`)}
+                  role="button"
+                  className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl p-4 hover:bg-[#121212] transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-medium text-white">{cat.name}</div>
+                    <div className="text-sm text-gray-400">{count}</div>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-400">Click to open category</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <CreateContentModal open={createOpen} categories={categories} onClose={() => setCreateOpen(false)} onCreated={onCreated} />

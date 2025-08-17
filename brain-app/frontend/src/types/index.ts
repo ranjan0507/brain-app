@@ -7,7 +7,7 @@ export type ContentItem = {
   _id: string;
   title: string;
   description?: string;
-  type?: string;
+  type?: "youtube" | "tweet" | "spotify" | "instagram" | "link" | "image" | "note";
   url?: string;
   createdAt?: string;
   favorite?: boolean;

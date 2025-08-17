@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import api from "../services/api";
-import { LayoutGrid, Folder, Search, Settings, PlusCircle, Star, LogOut, Share2 } from "lucide-react";
+import { LayoutGrid, Folder, Search, PlusCircle, LogOut, Share2 } from "lucide-react";
 import type { Category } from "../types";
 import LinkShareModal from "./LinkSharingModal";
 
@@ -48,7 +48,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="w-64 bg-[#0f0f0f] border-r border-neutral-800 p-4 flex flex-col">
-        <div className="text-2xl font-bold text-purple-400 mb-4">Brain App</div>
+        <div className="text-2xl font-bold text-purple-400 mb-4">Brainiac</div>
 
         <div className="space-y-1">
           <Link to="/" className={linkCls("/")}>
