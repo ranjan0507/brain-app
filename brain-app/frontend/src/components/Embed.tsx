@@ -1,4 +1,3 @@
-// src/components/Embed.tsx
 import { useEffect, useRef } from "react";
 
 interface EmbedProps {
@@ -11,17 +10,48 @@ interface EmbedProps {
 export default function Embed({ url, type, title, description }: EmbedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // load twitter script once
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Twitter
-    if (type === "tweet" && (window as any).twttr?.widgets?.load) {
-      (window as any).twttr.widgets.load(containerRef.current);
+    if (type === "tweet" && !(window as any).twttr) {
+      const script = document.createElement("script");
+      script.src = "https://platform.twitter.com/widgets.js";
+      script.async = true;
+      script.onload = () => {
+        const twttr = (window as any).twttr;
+        if (twttr?.widgets?.load && containerRef.current) {
+          twttr.widgets.load(containerRef.current);
+        }
+      };
+      document.body.appendChild(script);
     }
+    if (type === "instagram" && !(window as any).instgrm) {
+      const script = document.createElement("script");
+      script.src = "https://www.instagram.com/embed.js";
+      script.async = true;
+      script.onload = () => {
+        const instgrm = (window as any).instgrm;
+        if (instgrm?.Embeds?.process) {
+          instgrm.Embeds.process();
+        }
+      };
+      document.body.appendChild(script);
+    }
+  }, [type]);
 
-    // Instagram
-    if (type === "instagram" && (window as any).instgrm?.Embeds?.process) {
-      (window as any).instgrm.Embeds.process();
+  useEffect(() => {
+    if (!containerRef.current || !url) return;
+
+    if (type === "tweet") {
+      const twttr = (window as any).twttr;
+      if (twttr?.widgets?.load) {
+        twttr.widgets.load(containerRef.current);
+      }
+    }
+    if (type === "instagram") {
+      const instgrm = (window as any).instgrm;
+      if (instgrm?.Embeds?.process) {
+        instgrm.Embeds.process();
+      }
     }
   }, [url, type]);
 
@@ -37,12 +67,38 @@ export default function Embed({ url, type, title, description }: EmbedProps) {
 
   if (!url) return null;
 
+  if (type === "tweet") {
+    // Normalize x.com URLs to twitter.com to ensure widgets.js recognizes them
+    const tweetUrl = url.replace(/^https?:\/\/x\.com\//i, "https://twitter.com/");
+    return (
+      <div ref={containerRef}>
+        <blockquote className="twitter-tweet">
+          <a href={tweetUrl}>{title ?? tweetUrl}</a>
+        </blockquote>
+      </div>
+    );
+  }
+
+  if (type === "instagram") {
+    return (
+      <div ref={containerRef}>
+        <blockquote
+          className="instagram-media"
+          data-instgrm-permalink={url}
+          data-instgrm-version="14"
+          style={{ width: "100%" }}
+        >
+          <a href={url}>{title ?? url}</a>
+        </blockquote>
+      </div>
+    );
+  }
+
   if (type === "youtube") {
     const videoId = url.includes("v=")
       ? url.split("v=")[1]?.split("&")[0]
       : url.split("/").pop();
     if (!videoId) return <a href={url}>{url}</a>;
-
     return (
       <iframe
         width="100%"
@@ -54,16 +110,6 @@ export default function Embed({ url, type, title, description }: EmbedProps) {
         allowFullScreen
         className="rounded-lg"
       ></iframe>
-    );
-  }
-
-  if (type === "tweet") {
-    return (
-      <div ref={containerRef}>
-        <blockquote className="twitter-tweet">
-          <a href={url}></a>
-        </blockquote>
-      </div>
     );
   }
 
@@ -82,21 +128,6 @@ export default function Embed({ url, type, title, description }: EmbedProps) {
         allow="encrypted-media"
         className="rounded-lg"
       ></iframe>
-    );
-  }
-
-  if (type === "instagram") {
-    return (
-      <div ref={containerRef}>
-        <blockquote
-          className="instagram-media"
-          data-instgrm-permalink={url}
-          data-instgrm-version="14"
-          style={{ width: "100%" }}
-        >
-          <a href={url}></a>
-        </blockquote>
-      </div>
     );
   }
 

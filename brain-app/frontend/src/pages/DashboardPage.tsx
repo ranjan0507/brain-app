@@ -6,6 +6,7 @@ import CategoryList from "../components/CategoryList";
 import ContentList from "../components/ContentList";
 import CreateContentModal from "../components/CreateContentModal";
 import type { Category, ContentItem } from "../types";
+import Embed from "../components/Embed";
 
 export default function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -35,30 +36,7 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // load twitter + instagram embed scripts so the dashboard embeds render
-  useEffect(() => {
-    // Twitter
-    if (!(window as any).twttr) {
-      const s = document.createElement("script");
-      s.src = "https://platform.twitter.com/widgets.js";
-      s.async = true;
-      s.onload = () => (window as any).twttr?.widgets?.load();
-      document.body.appendChild(s);
-    } else {
-      (window as any).twttr?.widgets?.load();
-    }
-
-    // Instagram
-    if (!(window as any).instgrm) {
-      const s2 = document.createElement("script");
-      s2.src = "https://www.instagram.com/embed.js";
-      s2.async = true;
-      s2.onload = () => (window as any).instgrm?.Embeds?.process();
-      document.body.appendChild(s2);
-    } else {
-      (window as any).instgrm?.Embeds?.process();
-    }
-  }, [contents]);
+  // NOTE: Embed scripts are handled inside the Embed component to avoid duplication.
 
   const stats = useMemo(() => {
     return contents.reduce<Record<string, number>>((acc, item) => {
@@ -120,11 +98,7 @@ export default function DashboardPage() {
     }
 
     if (type === "tweet") {
-      return (
-        <blockquote className="twitter-tweet">
-          <a href={url}></a>
-        </blockquote>
-      );
+      return <Embed url={url} type="tweet" title={title} />;
     }
 
     if (type === "spotify") {
@@ -144,11 +118,7 @@ export default function DashboardPage() {
     }
 
     if (type === "instagram") {
-      return (
-        <blockquote className="instagram-media" data-instgrm-permalink={url} data-instgrm-version="14" style={{ width: "100%" }}>
-          <a href={url}></a>
-        </blockquote>
-      );
+      return <Embed url={url} type="instagram" title={title} />;
     }
 
     if (type === "image") {
@@ -177,7 +147,7 @@ export default function DashboardPage() {
       </div>
 
       {/* stats */}
-      <section>
+      <section className="fade-in">
         <h2 className="text-lg font-semibold text-gray-200 mb-4">Stats</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
           {Object.keys(stats).length === 0 ? (
@@ -190,7 +160,7 @@ export default function DashboardPage() {
                 key={type}
                 role="button"
                 onClick={() => navigate(`/my?type=${encodeURIComponent(type)}`)}
-                className="cursor-pointer bg-gradient-to-br from-neutral-900/40 to-neutral-800/20 border border-neutral-800 rounded-xl p-4 hover:shadow-lg hover:scale-[1.02] transition"
+                className="cursor-pointer bg-gradient-to-br from-neutral-900/40 to-neutral-800/20 border border-neutral-800 rounded-xl p-4 hover:shadow-lg hover:scale-[1.02] transition hover-glow-dark"
               >
                 <div className="text-sm text-gray-400 capitalize">{type}</div>
                 <div className="text-2xl font-bold text-purple-300">{count}</div>
@@ -202,7 +172,7 @@ export default function DashboardPage() {
       </section>
 
       {/* recent */}
-      <section>
+      <section className="fade-in">
         <h2 className="text-lg font-semibold text-gray-200 mb-4">Recently added</h2>
 
         {recent.length === 0 ? (
@@ -218,14 +188,14 @@ export default function DashboardPage() {
                   key={item._id}
                   onClick={() => navigate(`/my?type=${encodeURIComponent(item.type ?? "")}&highlight=${encodeURIComponent(item._id)}`)}
                   role="button"
-                  className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl overflow-hidden hover:bg-[#121212] transition"
+                  className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl overflow-hidden hover:bg-[#121212] transition hover-glow-dark"
                 >
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-lg font-semibold text-white">{item.title || (item as any).link || "Untitled"}</h3>
                         <div className="text-xs text-gray-400 mt-1">
-                          {item.type ?? "other"} • {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"}
+                          {item.type ?? "other"} • {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—" }
                         </div>
                         {catName && <div className="text-xs text-gray-400 mt-2">Category: {catName}</div>}
                         {Array.isArray(item.tags) && item.tags.length > 0 && (
@@ -241,7 +211,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* embed preview */}
-                    <div className="mt-4">
+                    <div className="mt-4 fade-in">
                       {renderEmbed(item)}
                     </div>
                   </div>
@@ -253,7 +223,7 @@ export default function DashboardPage() {
       </section>
 
       {/* categories */}
-      <section>
+      <section className="fade-in">
         <h2 className="text-lg font-semibold text-gray-200 mb-4">Categories</h2>
 
         {categories.length === 0 ? (
@@ -274,7 +244,7 @@ export default function DashboardPage() {
                   key={cat._id}
                   onClick={() => navigate(`/categories/${cat._id}`)}
                   role="button"
-                  className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl p-4 hover:bg-[#121212] transition"
+                  className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl p-4 hover:bg-[#121212] transition hover-glow-dark"
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-medium text-white">{cat.name}</div>

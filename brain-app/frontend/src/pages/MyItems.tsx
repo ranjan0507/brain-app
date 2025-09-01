@@ -1,6 +1,7 @@
 // src/pages/MyContentPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import { useLocation } from "react-router-dom";
 import ContentList from "../components/ContentList";
 import LinkShareModal from "../components/LinkSharingModal";
 import CreateContentModal from "../components/CreateContentModal";
@@ -19,6 +20,17 @@ export default function MyContentPage() {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const location = useLocation();
+
+useEffect(() => {
+  const params = new URLSearchParams(location.search);
+  const cat = params.get("category");
+  if (cat) {
+    setSelectedCategory(cat);
+  }
+}, [location.search]);
+
 
   // fetch categories & contents
   const fetchAll = async () => {

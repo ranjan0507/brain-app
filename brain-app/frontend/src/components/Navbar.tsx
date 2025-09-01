@@ -17,26 +17,46 @@ export default function Navbar() {
     (async () => {
       try {
         const res = await api.get("/api/category");
-        const data = Array.isArray(res.data) ? res.data : res.data?.categories ?? [];
+        let data: Category[] = [];
+
+        if (Array.isArray(res.data)) {
+          data = res.data;
+        } else if (Array.isArray(res.data?.categories)) {
+          data = res.data.categories;
+        } else if (Array.isArray(res.data?.category)) {
+          data = res.data.category;
+        } else if (res.data?.data && Array.isArray(res.data.data)) {
+          data = res.data.data;
+        }
+
         if (!cancelled) setCategories(data);
       } catch (err) {
         console.error("fetch categories:", err);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const linkCls = (path: string) =>
     `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-      location.pathname === path ? "bg-neutral-800 text-purple-400" : "text-gray-300 hover:bg-neutral-800"
+      location.pathname === path
+        ? "bg-neutral-800 text-purple-400"
+        : "text-gray-300 hover:bg-neutral-800"
     }`;
 
   const handleShareBrain = async () => {
     try {
-      // backend generateLink creates a user-level share link (no payload expected)
       const res = await api.post("/api/links", {});
-      // expected shape: { link: { url, hash } }
-      const url = res.data?.link?.url ?? res.data?.link ?? res.data?.url ?? null;
+
+      // Normalize possible link return shapes
+      const url =
+        res.data?.link?.url ??
+        res.data?.link ??
+        res.data?.url ??
+        null;
+
       setShareUrl(url);
       setShareOpen(true);
     } catch (err) {
@@ -71,8 +91,6 @@ export default function Navbar() {
             <PlusCircle className="w-5 h-5" />
             Add Content
           </Link>
-
-
         </div>
 
         <div className="mt-6 border-t border-neutral-800 pt-4">
@@ -80,13 +98,22 @@ export default function Navbar() {
           <div className="space-y-1 max-h-48 overflow-y-auto px-1">
             {categories.length ? (
               categories.map((c) => (
-                <Link
-                  key={c._id}
-                  to={`/categories/${c._id}`}
-                  className="block px-3 py-1 rounded text-gray-300 hover:bg-purple-800 hover:text-white"
-                >
-                  {c.name}
-                </Link>
+                <div className="space-y-1 max-h-48 overflow-y-auto px-1">
+  {categories.length ? (
+    categories.map((c) => (
+      <Link
+        key={c._id}
+        to={`/content?category=${encodeURIComponent(c._id)}`}
+        className="block px-3 py-1 rounded text-gray-300 hover:bg-purple-800 hover:text-white"
+      >
+        {c.name}
+      </Link>
+    ))
+  ) : (
+    <div className="text-gray-500 px-3">No categories yet</div>
+  )}
+</div>
+
               ))
             ) : (
               <div className="text-gray-500 px-3">No categories yet</div>
@@ -116,7 +143,11 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <LinkShareModal open={shareOpen} link={shareUrl} onClose={() => setShareOpen(false)} />
+      <LinkShareModal
+        open={shareOpen}
+        link={shareUrl}
+        onClose={() => setShareOpen(false)}
+      />
     </>
   );
 }

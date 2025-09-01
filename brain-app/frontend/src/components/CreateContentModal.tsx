@@ -1,4 +1,3 @@
-// src/components/CreateContentModal.tsx
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import type { Category, ContentItem } from "../types";
@@ -16,6 +15,7 @@ export default function CreateContentModal({
 }) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
+  const [description, setDescription] = useState("");
   const [type, setType] = useState<ContentItem["type"]>("link");
   const [tags, setTags] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
@@ -26,6 +26,7 @@ export default function CreateContentModal({
     if (!open) {
       setTitle("");
       setUrl("");
+      setDescription("");
       setType("link");
       setTags("");
       setCategoryId("");
@@ -43,6 +44,10 @@ export default function CreateContentModal({
       alert("Provide a title or a URL (for non-note types).");
       return;
     }
+    if (type === "note" && !description.trim()) {
+      alert("Notes must have a description.");
+      return;
+    }
     if (!categoryId && !newCategoryName.trim()) {
       alert("Select or create a category");
       return;
@@ -53,6 +58,7 @@ export default function CreateContentModal({
       const payload: any = {
         title: title.trim() || undefined,
         url: url.trim() || undefined,
+        description: description.trim() || undefined,
         type,
         tags: tags
           .split(",")
@@ -71,6 +77,7 @@ export default function CreateContentModal({
           _id: String(Date.now()),
           title: payload.title ?? payload.url,
           url: payload.url,
+          description: payload.description,
           type: payload.type,
           createdAt: new Date().toISOString(),
         } as ContentItem);
@@ -110,6 +117,19 @@ export default function CreateContentModal({
                 onChange={(e) => setUrl(e.target.value)}
                 className="w-full p-2 bg-[#0b0b0b] rounded border border-neutral-800"
                 placeholder="https://..."
+              />
+            </div>
+          )}
+
+          {type === "note" && (
+            <div>
+              <label className="text-sm text-gray-300">Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
+                className="w-full p-2 bg-[#0b0b0b] rounded border border-neutral-800"
+                placeholder="Write your note here..."
               />
             </div>
           )}
