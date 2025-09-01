@@ -2,8 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import CategoryList from "../components/CategoryList";
-import ContentList from "../components/ContentList";
 import CreateContentModal from "../components/CreateContentModal";
 import type { Category, ContentItem } from "../types";
 import Embed from "../components/Embed";
@@ -13,6 +11,7 @@ export default function DashboardPage() {
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
 
   const fetchAll = async () => {
@@ -211,8 +210,24 @@ export default function DashboardPage() {
                     </div>
 
                     {/* embed preview */}
-                    <div className="mt-4 fade-in">
-                      {renderEmbed(item)}
+                    <div className="mt-4 fade-in relative">
+                      <div className={expanded[item._id] ? "max-h-none" : "max-h-56 overflow-hidden"}>
+                        {renderEmbed(item)}
+                      </div>
+                      {!expanded[item._id] && (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0f0f0f] to-transparent" />
+                      )}
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpanded((prev) => ({ ...prev, [item._id]: !prev[item._id] }));
+                          }}
+                          className="px-3 py-1 text-xs rounded bg-neutral-800 hover:bg-neutral-700 text-gray-300 border border-neutral-700"
+                        >
+                          {expanded[item._id] ? "Less" : "More"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -242,7 +257,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={cat._id}
-                  onClick={() => navigate(`/categories/${cat._id}`)}
+                  onClick={() => navigate(`/my?category=${encodeURIComponent(String(cat._id))}`)}
                   role="button"
                   className="cursor-pointer bg-[#0f0f0f] border border-neutral-800 rounded-xl p-4 hover:bg-[#121212] transition hover-glow-dark"
                 >

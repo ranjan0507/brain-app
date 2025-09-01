@@ -1,4 +1,5 @@
 // src/components/ContentList.tsx
+import { useState } from "react";
 import type { ContentItem, Category } from "../types";
 import Embed from "./Embed";
 
@@ -17,6 +18,7 @@ export default function ContentList({
   onEdit,
   onShare,
 }: Props) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {contents.map((item) => {
@@ -61,13 +63,26 @@ export default function ContentList({
                 ))}
             </div>
 
-            <div className="mt-3">
-              <Embed
-                url={item.url}
-                type={item.type}
-                description={item.description}
-                title={item.title}
-              />
+            <div className="mt-3 relative">
+              <div className={expanded[item._id] ? "max-h-none" : "max-h-56 overflow-hidden"}>
+                <Embed
+                  url={item.url}
+                  type={item.type}
+                  description={item.description}
+                  title={item.title}
+                />
+              </div>
+              {!expanded[item._id] && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-10 h-12 bg-gradient-to-t from-[#111] to-transparent" />
+              )}
+              <div className="mt-2 flex justify-end">
+                <button
+                  onClick={() => setExpanded((prev) => ({ ...prev, [item._id]: !prev[item._id] }))}
+                  className="px-3 py-1 text-xs rounded bg-neutral-800 hover:bg-neutral-700 text-gray-300 border border-neutral-700"
+                >
+                  {expanded[item._id] ? "Less" : "More"}
+                </button>
+              </div>
             </div>
 
             {/* Actions */}
