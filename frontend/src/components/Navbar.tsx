@@ -98,22 +98,13 @@ export default function Navbar() {
           <div className="space-y-1 max-h-48 overflow-y-auto px-1">
             {categories.length ? (
               categories.map((c) => (
-                <div className="space-y-1 max-h-48 overflow-y-auto px-1">
-  {categories.length ? (
-    categories.map((c) => (
-      <Link
-        key={c._id}
-        to={`/content?category=${encodeURIComponent(c._id)}`}
-        className="block px-3 py-1 rounded text-gray-300 hover:bg-purple-800 hover:text-white"
-      >
-        {c.name}
-      </Link>
-    ))
-  ) : (
-    <div className="text-gray-500 px-3">No categories yet</div>
-  )}
-</div>
-
+                <Link
+                  key={c._id}
+                  to={`/my?category=${encodeURIComponent(c._id)}`}
+                  className="block px-3 py-1 rounded text-gray-300 hover:bg-purple-800 hover:text-white"
+                >
+                  {c.name}
+                </Link>
               ))
             ) : (
               <div className="text-gray-500 px-3">No categories yet</div>
